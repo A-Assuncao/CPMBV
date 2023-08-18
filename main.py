@@ -1,17 +1,17 @@
 import pandas as pd
 from playwright.sync_api import sync_playwright
-from credenciais import segredos
-
-nome_usuario = segredos.get('NOME_USUARIO')
-senha = segredos.get('SENHA')
 
 # Variáveis
 url_login_canaime = 'http://canaime.com.br/sgp2rr/login/login_principal.php'
 url_chamada_cpp = 'http://canaime.com.br/sgp2rr/areas/impressoes/UND_ChamadaFOTOS_todos2.php?id_und_prisional=CPP'
 
 
-def login_canaime(page, nome_usuario, senha):
+def login_canaime(page):
     # Login Sistema Canaimé
+    print('Você precisará digitar seu usuário e senha do Canaimé.\n Os dados não serão gravados.')
+    nome_usuario = input('Digite seu login: ')
+    senha = input('Digite sua senha: ')
+
     page.goto(url_login_canaime, timeout=0)
     page.locator("input[name=\"usuario\"]").click()
     page.locator("input[name=\"usuario\"]").fill(nome_usuario)
@@ -27,7 +27,7 @@ def criar_lista_cpp():
         page = browser.new_page()
 
         # Chamar a função de login
-        login_canaime(page, nome_usuario, senha)
+        login_canaime(page)
 
         page.goto(url_chamada_cpp, timeout=0)
         page.locator('.titulobkSingCAPS >> nth=0')
