@@ -94,3 +94,7 @@ with sync_playwright() as p:
         page.get_by_role("button", name="CADASTRAR").click()
     page.close()
     browser.close()
+
+
+if __name__ == '__main__':
+    print('Fazer alguma coisa aqui')
