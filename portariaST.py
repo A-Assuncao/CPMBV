@@ -10,6 +10,7 @@ imprimir_portaria = 'http://canaime.com.br/sgp2rr/areas/impressoes/UND_Portaria.
 historico = 'http://canaime.com.br/sgp2rr/areas/unidades/HistCar_LER.php?id_cad_preso='
 data_ST = '23/12/2023'
 dia_inicio = data_ST[:2]
+perfil = '/data/.st'
 
 artigos = {
     "1": "Art. 1º - LIBERAR o reeducando do Regime Semiaberto, no período de 23/12/2023 a 29/12/2023 (07 dias), "
@@ -35,14 +36,13 @@ artigos = {
     "5": "Art. 5º - Deverá apresentar-se na CADEIA PÚBLICA MASCULINA DE BOA VISTA, até às 18h do dia 29/12/2023."
 }
 df = pd.read_excel('data/ST.xlsx')
-cdg = df['CÓDIGOS'].tolist()
+cdg = df['ID'].tolist()
 preso = df['REEDUCANDO'].tolist()
-cela = df['CELA'].tolist()
+cela = df['ALA/CELA'].tolist()
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)
-    page = browser.new_page()
-
+    context = p.chromium.launch_persistent_context(headless=False, user_data_dir=perfil)
+    page = context.new_page()
     # Login Sistema Canaimé
     login_canaime(page)
 
@@ -78,13 +78,13 @@ with sync_playwright() as p:
 
         # imprimir portaria
         page.goto(imprimir_portaria + str(n_portaria))
-        page.pdf(path=fr"data\Portarias\{cela[i]}-{preso[i]}.pdf",
+        page.pdf(path=fr"data\{cela[i]}-{preso[i]}.pdf",
                  format="A4", margin=dict(top="2cm", left="2cm", right="2cm", bottom="2cm"))
 
         # lançar certidão carcerária
         lancamento_certidao = f'Foi LIBERADO no período de 23/12/2023 a 29/12/2023 para a SAÍDA TEMPORÁRIA. ' \
                               f'O reeducando está ciente de que deverá se apresentar nesta Unidade no dia ' \
-                              f'29/12/2023, até às 18h00min, conforme PORTARIA nº {str(n_portaria)}/GAB/SAI/CPP.'
+                              f'29/12/2023, até às 18h00min, conforme PORTARIA nº {str(n_portaria)}/GAB/SAI/CPBV.'
         page.goto(historico + str(item))
         page.get_by_role("link", name="Cadastrar histórico carcerário").click()
         page.locator("#data").click()
@@ -93,8 +93,8 @@ with sync_playwright() as p:
         page.locator("textarea[name=\"histcarc\"]").fill(lancamento_certidao)
         page.get_by_role("button", name="CADASTRAR").click()
     page.close()
-    browser.close()
+    context.close()
 
 
-if __name__ == '__main__':
-    print('Fazer alguma coisa aqui')
+# if __name__ == '__main__':
+#     print('Fazer alguma coisa aqui')
