@@ -37,6 +37,7 @@ artigos = {
 }
 df = pd.read_excel('data/ST.xlsx')
 cdg = df['ID'].tolist()
+erros_st = []
 
 with sync_playwright() as p:
     context = p.chromium.launch_persistent_context(headless=True, user_data_dir=perfil)
@@ -44,56 +45,65 @@ with sync_playwright() as p:
 
     # Login Sistema Canaimé
     login_canaime(page)
+    try:
+        for i, item in enumerate(cdg):
+            print(str(i) + ' ' + str(item) + ' ' + ficha + str(item))
+        #     page.goto(cadastrar_portaria + str(item))
+        #     page.locator("select[name=\"dia\"]").select_option(dia_inicio)
+        #     # Fazer a portaria:
+        #     page.locator("textarea[name=\"paragrafo1\"]").click()
+        #     page.locator("textarea[name=\"paragrafo1\"]").press("Control+a")
+        #     page.locator("textarea[name=\"paragrafo1\"]").fill(artigos['1'])
+        #
+        #     page.locator("textarea[name=\"paragrafo2\"]").click()
+        #     page.locator("textarea[name=\"paragrafo2\"]").press("Control+a")
+        #     page.locator("textarea[name=\"paragrafo2\"]").fill(artigos['2'])
+        #
+        #     page.locator("textarea[name=\"paragrafo3\"]").click()
+        #     page.locator("textarea[name=\"paragrafo3\"]").press("Control+a")
+        #     page.locator("textarea[name=\"paragrafo3\"]").fill(artigos['3'])
+        #
+        #     page.locator("textarea[name=\"paragrafo4\"]").click()
+        #     page.locator("textarea[name=\"paragrafo4\"]").press("Control+a")
+        #     page.locator("textarea[name=\"paragrafo4\"]").fill(artigos['4'])
+        #
+        #     page.locator("textarea[name=\"paragrafo5\"]").click()
+        #     page.locator("textarea[name=\"paragrafo5\"]").press("Control+a")
+        #     page.locator("textarea[name=\"paragrafo5\"]").fill(artigos['5'])
+        #     page.get_by_role("button", name="CADASTRAR").click()
+        #
+            # Ler o número da portaria
+            page.goto(ler_portaria + str(item))
+            n_portaria = page.locator('.titulobk:nth-child(1)').nth(0).text_content()
 
-    for i, item in enumerate(cdg):
-        print(str(i) + ' ' + str(item) + ' ' + ficha + str(item))
-    #     page.goto(cadastrar_portaria + str(item))
-    #     page.locator("select[name=\"dia\"]").select_option(dia_inicio)
-    #     # Fazer a portaria:
-    #     page.locator("textarea[name=\"paragrafo1\"]").click()
-    #     page.locator("textarea[name=\"paragrafo1\"]").press("Control+a")
-    #     page.locator("textarea[name=\"paragrafo1\"]").fill(artigos['1'])
-    #
-    #     page.locator("textarea[name=\"paragrafo2\"]").click()
-    #     page.locator("textarea[name=\"paragrafo2\"]").press("Control+a")
-    #     page.locator("textarea[name=\"paragrafo2\"]").fill(artigos['2'])
-    #
-    #     page.locator("textarea[name=\"paragrafo3\"]").click()
-    #     page.locator("textarea[name=\"paragrafo3\"]").press("Control+a")
-    #     page.locator("textarea[name=\"paragrafo3\"]").fill(artigos['3'])
-    #
-    #     page.locator("textarea[name=\"paragrafo4\"]").click()
-    #     page.locator("textarea[name=\"paragrafo4\"]").press("Control+a")
-    #     page.locator("textarea[name=\"paragrafo4\"]").fill(artigos['4'])
-    #
-    #     page.locator("textarea[name=\"paragrafo5\"]").click()
-    #     page.locator("textarea[name=\"paragrafo5\"]").press("Control+a")
-    #     page.locator("textarea[name=\"paragrafo5\"]").fill(artigos['5'])
-    #     page.get_by_role("button", name="CADASTRAR").click()
-    #
-        # Ler o número da portaria
-        page.goto(ler_portaria + str(item))
-        n_portaria = page.locator('.titulobk:nth-child(1)').nth(0).text_content()
+        #     # imprimir portaria
+        #     page.goto(imprimir_portaria + str(n_portaria))
+        #     page.pdf(path=fr"data\{cela[i]}-{preso[i]}.pdf",
+        #              format="A4", margin=dict(top="2cm", left="2cm", right="2cm", bottom="2cm"))
 
-    #     # imprimir portaria
-    #     page.goto(imprimir_portaria + str(n_portaria))
-    #     page.pdf(path=fr"data\{cela[i]}-{preso[i]}.pdf",
-    #              format="A4", margin=dict(top="2cm", left="2cm", right="2cm", bottom="2cm"))
+            # lançar certidão carcerária
+            lancamento_certidao = (f"Foi devidamente autorizado pela Direção da CPBV - conforme Portaria "
+                                   f"Nº {n_portaria}/2023/GAB/SAI/CPBV - a usufruir do benefício de SAÍDA "
+                                   f"TEMPORÁRIA, sendo LIBERADO da unidade em 23/12/2023 com determinação "
+                                   f"de retorno até às 18h do dia 29/12/2023.")
+            page.goto(historico + str(item))
+            page.get_by_role("link", name="Cadastrar histórico carcerário").click()
+            page.locator("#data").click()
+            page.locator("#data").fill(data_ST)
+            page.locator("textarea[name=\"histcarc\"]").click()
+            page.locator("textarea[name=\"histcarc\"]").fill(lancamento_certidao)
+            page.get_by_role("button", name="CADASTRAR").click()
+        page.close()
+        context.close()
+    except Exception as e:
+        erros_st.append([cdg, e])
 
-        # lançar certidão carcerária
-        lancamento_certidao = (f"Foi devidamente autorizado pela Direção da CPBV - conforme Portaria "
-                               f"Nº {n_portaria}/2023/GAB/SAI/CPBV - a usufruir do benefício de SAÍDA "
-                               f"TEMPORÁRIA, sendo LIBERADO da unidade em 23/12/2023 com determinação "
-                               f"de retorno até às 18h do dia 29/12/2023.")
-        page.goto(historico + str(item))
-        page.get_by_role("link", name="Cadastrar histórico carcerário").click()
-        page.locator("#data").click()
-        page.locator("#data").fill(data_ST)
-        page.locator("textarea[name=\"histcarc\"]").click()
-        page.locator("textarea[name=\"histcarc\"]").fill(lancamento_certidao)
-        page.get_by_role("button", name="CADASTRAR").click()
-    page.close()
-    context.close()
+    erros_st = pd.DataFrame(erros_st, columns=["Código", "Erro"])
+    erros_st.to_excel('data/Erros_ST.xlsx', index=False)
+    num_erros = len(erros_st)
+    erro_msg = f'Foi encontrado {num_erros} erro' if num_erros == 1 else f'Foram encontrados {num_erros} erros'
+    print(erro_msg)
+
 
 
 # if __name__ == '__main__':
