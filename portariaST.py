@@ -103,8 +103,3 @@ with sync_playwright() as p:
     num_erros = len(erros_st)
     erro_msg = f'Foi encontrado {num_erros} erro' if num_erros == 1 else f'Foram encontrados {num_erros} erros'
     print(erro_msg)
-
-
-
-# if __name__ == '__main__':
-#     print('Fazer alguma coisa aqui')
