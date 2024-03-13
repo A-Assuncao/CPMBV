@@ -1,8 +1,7 @@
 import os
-import getpass
 import pandas as pd
-from tkinter import Tk
-from tkinter.filedialog import askopenfilename
+import tkinter as tk
+from tkinter import filedialog
 from playwright.sync_api import Playwright, sync_playwright
 
 # Variáveis
@@ -14,7 +13,7 @@ historico = 'https://canaime.com.br/sgp2rr/areas/unidades/HistCar_LER.php?id_cad
 data_inicio = '23/03/2024'
 data_final = '29/03/2024'
 dia_inicio = data_inicio[:2]
-perfil = '/data/.st'
+perfil = 'data/.st'
 url_login_canaime = 'https://canaime.com.br/sgp2rr/login/login_principal.php'
 
 artigos = {
@@ -58,11 +57,9 @@ def setup_browser_persistent(playwright: Playwright, sem_visual=True):
 
 
 def login_canaime(p, sem_visual=True):
-    msg_locator_logado = 'SIGP Canaimé 2.0. Todos os direitos reservados'
     print('Você precisará digitar seu usuário e senha do Canaimé. Os dados não serão gravados.')
     nome_usuario = input('Digite seu login: ')
     senha = input('Digite sua senha: ')
-    # senha = getpass.getpass('Digite sua senha: ')
 
     context, page = setup_browser_persistent(p, sem_visual=sem_visual)
     page.goto(url_login_canaime, timeout=0)
@@ -72,20 +69,24 @@ def login_canaime(p, sem_visual=True):
     page.locator("input[name=\"senha\"]").fill(senha)
     page.locator("input[name=\"senha\"]").press("Enter")
     try:
-        if msg_locator_logado in page.locator(".titulo").text_content():
-            print('Login efetuado com sucesso')
+        nao_logado = page.locator(".login-form")
+        if nao_logado:
+            print('Usuário ou senha inválidos')
+            exit()
     except Exception as e:
-        page.close()
-        print(f'Ocorreu um erro {e}')
-        print('Usuário ou senha inválidos')
-        exit()
+        print('Login efetuado com sucesso!')
+        pass
     return page
 
 
 def main(sem_visual=True, teste=False):
-    Tk().withdraw()
-    print('Selecione o arquivo Excel na janela que abrirá em seguida')
-    arquivo_path = askopenfilename(title="Selecione o arquivo Excel")
+    print('Selecione o arquivo Excel na janela que abrirá em seguida...')
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    arquivo_path = filedialog.askopenfilename(title="Selecione o arquivo Excel da Saída Temporária")
+    root.attributes('-topmost', False)
+    root.destroy()
 
     if teste:
         df = pd.read_excel(arquivo_path, nrows=1)
@@ -162,20 +163,6 @@ def main(sem_visual=True, teste=False):
         num_erros = len(erros_st)
         erro_msg = f'Foi encontrado {num_erros} erro' if num_erros == 1 else f'Foram encontrados {num_erros} erros'
         print(erro_msg)
-
-        if teste:
-            print("Teste finalizado. Deseja apagar os dados do teste? Se sim, digite 'S'")
-            if input("Digite: ").upper() == "S":
-                # Apagar portaria
-                page.goto(ler_portaria + str(item))
-                name_locator = f"{n_portaria} {data_inicio} AUTORIZAR"
-                page.get_by_role("row", name=name_locator).get_by_role("link").nth(2).click()
-                page.get_by_role("button", name="EXCLUIR").click()
-
-                # Apagar histórico
-                page.goto(historico + str(item))
-                page.get_by_role("link", name="Excluir histórico carcerário").first.click()
-                page.get_by_role("button", name="EXCLUIR").click()
 
 
 if __name__ == '__main__':
