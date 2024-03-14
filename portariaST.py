@@ -1,4 +1,5 @@
 import os
+import subprocess
 import traceback
 import pandas as pd
 import tkinter as tk
@@ -9,7 +10,7 @@ from playwright.sync_api import sync_playwright
 ficha = 'https://canaime.com.br/sgp2rr/areas/unidades/Ficha_Menu.php?id_cad_preso='
 cadastrar_portaria = 'https://canaime.com.br/sgp2rr/areas/unidades/Portaria_CAD_autorizar.php?id_cad_preso='
 ler_portaria = 'https://canaime.com.br/sgp2rr/areas/unidades/Portaria_LER.php?id_cad_preso='
-imprimir_portaria = 'https//canaime.com.br/sgp2rr/areas/impressoes/UND_Portaria.php?id_portaria='
+url_imprimir_portaria = 'https//canaime.com.br/sgp2rr/areas/impressoes/UND_Portaria.php?id_portaria='
 historico = 'https://canaime.com.br/sgp2rr/areas/unidades/HistCar_LER.php?id_cad_preso='
 data_inicio = '23/03/2024'
 data_final = '29/03/2024'
@@ -69,6 +70,38 @@ def login_canaime(p, sem_visual=True):
         print('Login efetuado com sucesso!')
         pass
     return page
+
+
+def print_pdf_files(folder="portarias"):
+    response = input("Deseja imprimir as portarias? (sim/não): ").strip().lower()
+
+    if response == "sim":
+        if os.path.exists(folder):
+            files = [f for f in os.listdir(folder) if f.endswith('.pdf')]
+            if files:
+                for file in files:
+                    full_path = os.path.join(folder, file)
+                    # Envia o arquivo para a impressora
+                    print(f"Imprimindo {file}...")
+                    subprocess.run(["start", "/wait", "cmd", "/c", full_path], shell=True, check=True)
+                print("Todos os arquivos foram enviados para a impressora.")
+            else:
+                print("Não há arquivos PDF para imprimir.")
+        else:
+            print("A pasta especificada não existe.")
+    elif response == "não":
+        print("Operação cancelada pelo usuário.")
+    else:
+        print("Resposta inválida.")
+
+
+def generate_pdf(pagina, url, numero_portaria, folder="portarias"):
+    # Verifica se a pasta existe, se não, cria
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    full_pdf_path = os.path.join(folder, numero_portaria)
+    pagina.goto(url + numero_portaria)
+    pagina.pdf(path=full_pdf_path)
 
 
 def main(sem_visual=True, teste=False):
@@ -142,6 +175,7 @@ def main(sem_visual=True, teste=False):
                 page.get_by_role("button", name="CADASTRAR").click()
                 print(f'Histórico de {item} lançado, faltam apenas {qtd - i - 1}!')
                 print(texto)
+                generate_pdf(page, url_imprimir_portaria, n_portaria)
         except Exception as e:
             erros_st.append([item, e, ficha + str(item)])
 
@@ -166,3 +200,6 @@ if __name__ == '__main__':
         with open("erro_traceback.txt", "w") as f:
             # Escreve o traceback no arquivo erro_traceback.txt
             traceback.print_exc(file=f)
+    print_pdf_files()
+    input('Pressione qualquer tecla para sair...')
+    exit()
