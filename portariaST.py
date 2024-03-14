@@ -1,8 +1,9 @@
 import os
+import traceback
 import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
-from playwright.sync_api import Playwright, sync_playwright
+from playwright.sync_api import sync_playwright
 
 # Variáveis
 ficha = 'https://canaime.com.br/sgp2rr/areas/unidades/Ficha_Menu.php?id_cad_preso='
@@ -13,7 +14,6 @@ historico = 'https://canaime.com.br/sgp2rr/areas/unidades/HistCar_LER.php?id_cad
 data_inicio = '23/03/2024'
 data_final = '29/03/2024'
 dia_inicio = data_inicio[:2]
-perfil = 'data/.st'
 url_login_canaime = 'https://canaime.com.br/sgp2rr/login/login_principal.php'
 
 artigos = {
@@ -45,23 +45,13 @@ def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-def setup_browser_persistent(playwright: Playwright, sem_visual=True):
-    if sem_visual:
-        context = playwright.chromium.launch_persistent_context(headless=True, timeout=300000,
-                                                                user_data_dir=perfil, ignore_https_errors=True)
-    else:
-        context = playwright.chromium.launch_persistent_context(headless=False, timeout=300000,
-                                                                user_data_dir=perfil, ignore_https_errors=True)
-
-    return context, context.new_page()
-
-
 def login_canaime(p, sem_visual=True):
     print('Você precisará digitar seu usuário e senha do Canaimé. Os dados não serão gravados.')
     nome_usuario = input('Digite seu login: ')
     senha = input('Digite sua senha: ')
-
-    context, page = setup_browser_persistent(p, sem_visual=sem_visual)
+    browser = p.chromium.launch(headless=sem_visual)
+    context = browser.new_context(java_script_enabled=False)
+    page = context.new_page()
     page.goto(url_login_canaime, timeout=0)
     page.locator("input[name=\"usuario\"]").click()
     page.locator("input[name=\"usuario\"]").fill(nome_usuario)
@@ -71,7 +61,9 @@ def login_canaime(p, sem_visual=True):
     try:
         nao_logado = page.locator(".login-form")
         if nao_logado:
+            clear_screen()
             print('Usuário ou senha inválidos')
+            input('Pressione qualquer tecla para sair...')
             exit()
     except Exception as e:
         print('Login efetuado com sucesso!')
@@ -84,7 +76,7 @@ def main(sem_visual=True, teste=False):
     root = tk.Tk()
     root.withdraw()
     root.attributes('-topmost', True)
-    arquivo_path = filedialog.askopenfilename(title="Selecione o arquivo Excel da Saída Temporária")
+    arquivo_path = filedialog.askopenfilename(title="Selecione o Arquivo Excel da Saída Temporária")
     root.attributes('-topmost', False)
     root.destroy()
 
@@ -135,11 +127,6 @@ def main(sem_visual=True, teste=False):
                 page.goto(ler_portaria + str(item))
                 n_portaria = page.locator('.titulobk:nth-child(1)').nth(0).text_content()
 
-                #     # imprimir portaria
-                #     page.goto(imprimir_portaria + str(n_portaria))
-                #     page.pdf(path=fr"data\{cela[i]}-{preso[i]}.pdf",
-                #              format="A4", margin=dict(top="2cm", left="2cm", right="2cm", bottom="2cm"))
-
                 # lançar certidão carcerária
                 print(f'Portaria cadastrada para o preso {item}, realizando lançamento no histórico...')
                 lancamento_certidao = (f"Foi devidamente autorizado pela Direção da CPBV - conforme Portaria "
@@ -159,17 +146,23 @@ def main(sem_visual=True, teste=False):
             erros_st.append([item, e, ficha + str(item)])
 
         erros_st = pd.DataFrame(erros_st, columns=["Código", "Erro", "Ficha"])
-        erros_st.to_excel('data/Erros_ST.xlsx', index=False)
+        erros_st.to_excel('Erros_ST.xlsx', index=False)
         num_erros = len(erros_st)
         erro_msg = f'Foi encontrado {num_erros} erro' if num_erros == 1 else f'Foram encontrados {num_erros} erros'
         print(erro_msg)
 
 
 if __name__ == '__main__':
-    navegador = input("Navegador:\n[1] Esconder\n[2] Mostrar\nDigite a Opção: ")
-    if navegador == "1":
-        main(sem_visual=True)
-    elif navegador == "2":
-        main(sem_visual=False)
-    elif navegador == "2718":
-        main(sem_visual=False, teste=True)
+    try:
+        navegador = input("Navegador:\n[1] Esconder\n[2] Mostrar\nDigite a Opção: ")
+        if navegador == "1":
+            main(sem_visual=True)
+        elif navegador == "2":
+            main(sem_visual=False)
+        elif navegador == "2718":
+            main(sem_visual=False, teste=True)
+    except Exception:
+        # Captura qualquer exceção que ocorra
+        with open("erro_traceback.txt", "w") as f:
+            # Escreve o traceback no arquivo erro_traceback.txt
+            traceback.print_exc(file=f)
