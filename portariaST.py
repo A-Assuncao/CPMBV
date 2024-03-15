@@ -83,9 +83,9 @@ def login_canaime(p, sem_visual=True):
 
 
 def print_pdf_files(folder="portarias"):
-    response = input("Deseja imprimir as portarias? (sim/não): ").strip().lower()
+    response = input('Deseja imprimir as portarias? ("S" para confirmar): ').strip().lower()
 
-    if response == "sim":
+    if response == "sim" or response == "s" or response == "yes" or response == "y":
         if os.path.exists(folder):
             files = [f for f in os.listdir(folder) if f.endswith('.pdf')]
             if files:
@@ -99,10 +99,8 @@ def print_pdf_files(folder="portarias"):
                 print("Não há arquivos PDF para imprimir.")
         else:
             print("A pasta especificada não existe.")
-    elif response == "não":
-        print("Operação cancelada pelo usuário.")
     else:
-        print("Resposta inválida.")
+        print("Impressão cancelada pelo usuário.")
 
 
 def generate_pdf(pagina, url, numero_portaria, folder="portarias"):
