@@ -1,4 +1,6 @@
 import os
+import sys
+import logging
 import subprocess
 import traceback
 import pandas as pd
@@ -46,6 +48,14 @@ def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
+def capture_error(erro):
+    logging.basicConfig(filename='error_log.log', level=logging.ERROR,
+                        format='%(asctime)s:%(levelname)s:%(message)s')
+    error_message = f'Ocorreu um erro: {str(erro)}'
+    traceback_message = traceback.format_exc()
+    logging.error(f'{error_message}\nTraceback:\n{traceback_message}')
+
+
 def login_canaime(p, sem_visual=True):
     print('Você precisará digitar seu usuário e senha do Canaimé. Os dados não serão gravados.')
     nome_usuario = input('Digite seu login: ')
@@ -60,15 +70,15 @@ def login_canaime(p, sem_visual=True):
     page.locator("input[name=\"senha\"]").fill(senha)
     page.locator("input[name=\"senha\"]").press("Enter")
     try:
-        nao_logado = page.locator(".login-form")
-        if nao_logado:
-            clear_screen()
+        if page.locator('a[href="/sgp2rr/areas/unidades/index.php?doLogout=true"]').count() == 0:
             print('Usuário ou senha inválidos')
-            input('Pressione qualquer tecla para sair...')
-            exit()
-    except Exception as e:
-        print('Login efetuado com sucesso!')
-        pass
+            sys.exit(1)
+        else:
+            print('Login efetuado com sucesso!')
+    except Exception as e1:
+        capture_error(e1)
+        sys.exit(1)
+
     return page
 
 
@@ -176,14 +186,18 @@ def main(sem_visual=True, teste=False):
                 print(f'Histórico de {item} lançado, faltam apenas {qtd - i - 1}!')
                 print(texto)
                 generate_pdf(page, url_imprimir_portaria, n_portaria)
-        except Exception as e:
-            erros_st.append([item, e, ficha + str(item)])
+        except Exception as e2:
+            capture_error(e2)
+            erros_st.append([item, e2, ficha + str(item)])
 
+    if len(erros_st) > 0:
         erros_st = pd.DataFrame(erros_st, columns=["Código", "Erro", "Ficha"])
         erros_st.to_excel('Erros_ST.xlsx', index=False)
         num_erros = len(erros_st)
         erro_msg = f'Foi encontrado {num_erros} erro' if num_erros == 1 else f'Foram encontrados {num_erros} erros'
         print(erro_msg)
+
+    print_pdf_files()
 
 
 if __name__ == '__main__':
@@ -195,11 +209,8 @@ if __name__ == '__main__':
             main(sem_visual=False)
         elif navegador == "2718":
             main(sem_visual=False, teste=True)
-    except Exception:
-        # Captura qualquer exceção que ocorra
-        with open("erro_traceback.txt", "w") as f:
-            # Escreve o traceback no arquivo erro_traceback.txt
-            traceback.print_exc(file=f)
-    print_pdf_files()
-    input('Pressione qualquer tecla para sair...')
-    exit()
+    except Exception as e3:
+        capture_error(e3)
+
+    input('Pressione ENTER para sair...')
+    sys.exit(0)
