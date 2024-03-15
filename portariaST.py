@@ -60,6 +60,7 @@ def login_canaime(p, sem_visual=True):
     print('Você precisará digitar seu usuário e senha do Canaimé. Os dados não serão gravados.')
     nome_usuario = input('Digite seu login: ')
     senha = input('Digite sua senha: ')
+    clear_screen()
     browser = p.chromium.launch(headless=sem_visual)
     context = browser.new_context(java_script_enabled=False)
     page = context.new_page()
@@ -69,8 +70,9 @@ def login_canaime(p, sem_visual=True):
     page.locator("input[name=\"usuario\"]").press("Tab")
     page.locator("input[name=\"senha\"]").fill(senha)
     page.locator("input[name=\"senha\"]").press("Enter")
+    page.wait_for_timeout(5000)
     try:
-        if page.locator('a[href="/sgp2rr/areas/unidades/index.php?doLogout=true"]').count() == 0:
+        if page.locator('img').count() < 4:
             print('Usuário ou senha inválidos')
             sys.exit(1)
         else:
