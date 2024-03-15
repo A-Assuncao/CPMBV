@@ -12,7 +12,7 @@ from playwright.sync_api import sync_playwright
 ficha = 'https://canaime.com.br/sgp2rr/areas/unidades/Ficha_Menu.php?id_cad_preso='
 cadastrar_portaria = 'https://canaime.com.br/sgp2rr/areas/unidades/Portaria_CAD_autorizar.php?id_cad_preso='
 ler_portaria = 'https://canaime.com.br/sgp2rr/areas/unidades/Portaria_LER.php?id_cad_preso='
-url_imprimir_portaria = 'https//canaime.com.br/sgp2rr/areas/impressoes/UND_Portaria.php?id_portaria='
+url_imprimir_portaria = 'https://canaime.com.br/sgp2rr/areas/impressoes/UND_Portaria.php?id_portaria='
 historico = 'https://canaime.com.br/sgp2rr/areas/unidades/HistCar_LER.php?id_cad_preso='
 data_inicio = '23/03/2024'
 data_final = '29/03/2024'
@@ -105,12 +105,12 @@ def print_pdf_files(folder="portarias"):
         print("Impressão cancelada pelo usuário.")
 
 
-def generate_pdf(pagina, url, numero_portaria, folder="portarias"):
+def generate_pdf(pagina, numero_portaria, folder="portarias"):
     # Verifica se a pasta existe, se não, cria
     if not os.path.exists(folder):
         os.makedirs(folder)
     full_pdf_path = os.path.join(folder, numero_portaria)
-    pagina.goto(url + numero_portaria)
+    pagina.goto(url_imprimir_portaria + numero_portaria)
     pagina.pdf(path=full_pdf_path)
 
 
@@ -173,7 +173,7 @@ def main(sem_visual=True, teste=False):
                 # lançar certidão carcerária
                 print(f'Portaria cadastrada para o preso {item}, realizando lançamento no histórico...')
                 lancamento_certidao = (f"Foi devidamente autorizado pela Direção da CPBV - conforme Portaria "
-                                       f"Nº {n_portaria}/2023/GAB/SAI/CPBV - a usufruir do benefício de SAÍDA "
+                                       f"Nº {n_portaria}/2024/GAB/SAI/CPBV - a usufruir do benefício de SAÍDA "
                                        f"TEMPORÁRIA, sendo LIBERADO da unidade em {data_inicio} com determinação "
                                        f"de retorno até às 18h do dia {data_final}.")
                 page.goto(historico + str(item))
@@ -185,7 +185,7 @@ def main(sem_visual=True, teste=False):
                 page.get_by_role("button", name="CADASTRAR").click()
                 print(f'Histórico de {item} lançado, faltam apenas {qtd - i - 1}!')
                 print(texto)
-                generate_pdf(page, url_imprimir_portaria, n_portaria)
+                generate_pdf(page, n_portaria)
         except Exception as e2:
             capture_error(e2)
             erros_st.append([item, e2, ficha + str(item)])
