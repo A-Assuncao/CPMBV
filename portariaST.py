@@ -1,5 +1,6 @@
 import os
 import sys
+import requests
 import logging
 import subprocess
 import traceback
@@ -24,8 +25,8 @@ artigos = {
          "para o gozo da SAÍDA TEMPORÁRIA, em atenção a DECISÃO JUDICIAL existente nos autos de execução.",
     "2": "Art. 2º - A Liberação foi concedida em cumprimento a DECISÃO JUDICIAL advinda do Juiz de Direito da "
          f"Vara de Execuções Penais. Sendo DEFERIDA a Saída Temporária no período de {data_inicio} a {data_final} (07 "
-         "dias) - conforme estabelecido na Portaria nº 06 de 23/11/2023 – publicado no Diário de Justiça "
-         "Eletrônico – Ano XXVI / Edição 7506.",
+         "dias) - conforme estabelecido na conforme estabelecido na Portaria nº 03 de 15/03/2024– publicado no "
+         "Diário de Justiça Eletrônico – Ano XXVI / Edição 7581.",
     "3": "Art. 3º - O Reeducando declara ciência dos seus deveres e de sua condição, em especial a "
          "obrigatoriedade de:\n§1°. Fornecer comprovante do endereço onde poderá ser encontrado durante o gozo "
          "do benefício, comunicando eventual alteração do endereço.\n§2°. Para usufruir de Saídas Temporárias em "
@@ -84,34 +85,67 @@ def login_canaime(p, sem_visual=True):
     return page
 
 
-def print_pdf_files(folder="portarias"):
+def print_pdf_files():
     response = input('Deseja imprimir as portarias? ("S" para confirmar): ').strip().lower()
 
     if response == "sim" or response == "s" or response == "yes" or response == "y":
-        if os.path.exists(folder):
-            files = [f for f in os.listdir(folder) if f.endswith('.pdf')]
-            if files:
-                for file in files:
-                    full_path = os.path.join(folder, file)
-                    # Envia o arquivo para a impressora
-                    print(f"Imprimindo {file}...")
-                    subprocess.run(["start", "/wait", "cmd", "/c", full_path], shell=True, check=True)
-                print("Todos os arquivos foram enviados para a impressora.")
-            else:
-                print("Não há arquivos PDF para imprimir.")
-        else:
-            print("A pasta especificada não existe.")
-    else:
-        print("Impressão cancelada pelo usuário.")
+        # URL do arquivo que você deseja baixar
+        url = "https://www.print-conductor.com/files/printconductor-trial-setup.exe"
+
+        # Nome do arquivo para salvar. Este será usado para construir o caminho completo
+        filename = "printconductor-trial-setup.exe"
+
+        # Constrói o caminho completo para salvar o arquivo
+        save_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), filename)
+
+        try:
+            # Faz o download do arquivo
+            print(f"Baixando arquivo de {url}")
+            response = requests.get(url)
+            response.raise_for_status()  # Lança um erro para respostas não-sucedidas
+
+            # Salva o arquivo no caminho especificado
+            with open(save_path, 'wb') as file:
+                file.write(response.content)
+            print(f"Arquivo salvo em {save_path}")
+
+            # Executa o arquivo baixado
+            print("Iniciando o instalador...")
+            subprocess.run(save_path, shell=True)
+
+            # Caminho para o diretório 'portarias' relativo ao diretório atual do script
+            folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'portarias')
+
+            # Abre o diretório no Windows Explorer
+            subprocess.run(f'explorer "{folder_path}"', shell=True)
+
+            # Apaga o arquivo baixado após a execução
+            print("Apagando o instalador baixado...")
+            os.remove(save_path)
+
+        except requests.RequestException as e:
+            print(f"Erro ao fazer o download: {e}")
+        except Exception as e:
+            print(f"Erro ao executar ou apagar o arquivo: {e}")
 
 
-def generate_pdf(pagina, numero_portaria, folder="portarias"):
+def generate_pdf(pagina, lista_portarias, folder="portarias"):
     # Verifica se a pasta existe, se não, cria
     if not os.path.exists(folder):
         os.makedirs(folder)
-    full_pdf_path = os.path.join(folder, numero_portaria)
-    pagina.goto(url_imprimir_portaria + numero_portaria)
-    pagina.pdf(path=full_pdf_path)
+
+    # Itera sobre a lista de portarias
+    for portaria in lista_portarias:
+        # Define o caminho do arquivo PDF para a portaria atual
+        full_pdf_path = os.path.join(folder, str(portaria) + ".pdf")
+
+        # Acessa a página para imprimir a portaria
+        pagina.goto(url_imprimir_portaria + str(portaria))
+        pagina.emulate_media(media='screen')
+
+        # Gera o PDF com as margens especificadas e formato A4
+        pagina.pdf(path=full_pdf_path, format="A4",
+                   margin={"top": "2cm", "right": "2cm", "bottom": "2cm", "left": "2cm"})
 
 
 def main(sem_visual=True, teste=False):
@@ -130,6 +164,7 @@ def main(sem_visual=True, teste=False):
 
     cdg = df['ID'].tolist()
     qtd = len(cdg)
+    portarias = []
     erros_st = []
 
     with sync_playwright() as p:
@@ -170,6 +205,9 @@ def main(sem_visual=True, teste=False):
                 page.goto(ler_portaria + str(item))
                 n_portaria = page.locator('.titulobk:nth-child(1)').nth(0).text_content()
 
+                # Adicionar `n_portaria` à lista portarias
+                portarias.append(n_portaria)
+
                 # lançar certidão carcerária
                 print(f'Portaria cadastrada para o preso {item}, realizando lançamento no histórico...')
                 lancamento_certidao = (f"Foi devidamente autorizado pela Direção da CPBV - conforme Portaria "
@@ -185,10 +223,17 @@ def main(sem_visual=True, teste=False):
                 page.get_by_role("button", name="CADASTRAR").click()
                 print(f'Histórico de {item} lançado, faltam apenas {qtd - i - 1}!')
                 print(texto)
-                generate_pdf(page, n_portaria)
         except Exception as e2:
             capture_error(e2)
             erros_st.append([item, e2, ficha + str(item)])
+
+        # 3. Criar um novo DataFrame
+        novo_df = pd.DataFrame({
+            'ID': cdg,
+            'Portaria': portarias
+        })
+        novo_df.to_excel('Saída Temporária.xlsx', index=False)
+        generate_pdf(page, portarias)
 
     if len(erros_st) > 0:
         erros_st = pd.DataFrame(erros_st, columns=["Código", "Erro", "Ficha"])
