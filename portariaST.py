@@ -17,7 +17,8 @@ url_imprimir_portaria = 'https://canaime.com.br/sgp2rr/areas/impressoes/UND_Port
 historico = 'https://canaime.com.br/sgp2rr/areas/unidades/HistCar_LER.php?id_cad_preso='
 data_inicio = '11/05/2024'
 data_final = '17/05/2024'
-dia_inicio = data_inicio[:2]
+dia_inicio, mes_inicio, ano_inicio = data_inicio.split('/')
+mes_inicio = str(int(mes_inicio))  # Isso remove o zero à esquerda e mantém como string
 url_login_canaime = 'https://canaime.com.br/sgp2rr/login/login_principal.php'
 
 artigos = {
@@ -179,6 +180,8 @@ def main(sem_visual=True, teste=False):
                 print(f'Iniciando o processo para o preso {item}')
                 page.goto(cadastrar_portaria + str(item))
                 page.locator("select[name=\"dia\"]").select_option(dia_inicio)
+                page.locator("select[name=\"mes\"]").select_option(mes_inicio)
+                page.locator("select[name=\"ano\"]").select_option(ano_inicio)
                 # Fazer a portaria:
                 page.locator("textarea[name=\"paragrafo1\"]").click()
                 page.locator("textarea[name=\"paragrafo1\"]").press("Control+a")
