@@ -15,8 +15,8 @@ cadastrar_portaria = 'https://canaime.com.br/sgp2rr/areas/unidades/Portaria_CAD_
 ler_portaria = 'https://canaime.com.br/sgp2rr/areas/unidades/Portaria_LER.php?id_cad_preso='
 url_imprimir_portaria = 'https://canaime.com.br/sgp2rr/areas/impressoes/UND_Portaria.php?id_portaria='
 historico = 'https://canaime.com.br/sgp2rr/areas/unidades/HistCar_LER.php?id_cad_preso='
-data_inicio = '23/03/2024'
-data_final = '29/03/2024'
+data_inicio = '11/05/2024'
+data_final = '17/05/2024'
 dia_inicio = data_inicio[:2]
 url_login_canaime = 'https://canaime.com.br/sgp2rr/login/login_principal.php'
 
@@ -25,8 +25,8 @@ artigos = {
          "para o gozo da SAÍDA TEMPORÁRIA, em atenção a DECISÃO JUDICIAL existente nos autos de execução.",
     "2": "Art. 2º - A Liberação foi concedida em cumprimento a DECISÃO JUDICIAL advinda do Juiz de Direito da "
          f"Vara de Execuções Penais. Sendo DEFERIDA a Saída Temporária no período de {data_inicio} a {data_final} (07 "
-         "dias) - conforme estabelecido na Portaria nº 03 de 15/03/2024– publicado no Diário de Justiça Eletrônico "
-         "– Ano XXVI / Edição 7581.",
+         "dias) - conforme estabelecido na Portaria nº 04 de 18/03/2024– publicado no Diário de Justiça Eletrônico – "
+         "Ano XXVI / Edição 7582.",
     "3": "Art. 3º - O Reeducando declara ciência dos seus deveres e de sua condição, em especial a "
          "obrigatoriedade de:\n§1°. Fornecer comprovante do endereço onde poderá ser encontrado durante o gozo "
          "do benefício, comunicando eventual alteração do endereço.\n§2°. Para usufruir de Saídas Temporárias em "
