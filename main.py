@@ -278,4 +278,4 @@ if __name__ == '__main__':
     if update_application(current_version):
         sys.exit(0)  # Exits the current application if an update is applied
 
-    main(sem_visual=False)
+    main(sem_visual=True)
