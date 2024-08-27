@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from config_artigos_portaria_st import ConfigArtigosPortaria
-from config_lancamento_st import ConfigLancamento
+from config.config_artigos_portaria_st import ConfigArtigosPortaria
+from config.config_lancamento_st import ConfigLancamento
 from datetime import datetime
 import re
 
