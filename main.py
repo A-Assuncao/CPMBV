@@ -4,15 +4,15 @@ import sys
 import time
 import traceback
 import tkinter as tk
-import tkinter.font as font
 from tkinter import filedialog, messagebox
+import ctypes
 
 import pandas as pd
 from playwright.sync_api import sync_playwright
 
-import updater
-from interface_grafica import rodar_interface
-from login_canaime import executar_login
+from utils.updater import update_application
+from gui.interface_grafica import rodar_interface
+from gui.login_canaime import executar_login
 
 current_version = 'v0.0.2'  # Versão atual do aplicativo
 
@@ -24,9 +24,33 @@ url_imprimir_portaria = 'https://canaime.com.br/sgp2rr/areas/impressoes/UND_Port
 historico = 'https://canaime.com.br/sgp2rr/areas/unidades/HistCar_LER.php?id_cad_preso='
 url_login_canaime = 'https://canaime.com.br/sgp2rr/login/login_principal.php'
 
+# Ativar logs detalhados
+# os.environ['DEBUG'] = 'pw:api'
 
-def clear_screen():
-    os.system('cls' if os.name == 'nt' else 'clear')
+
+def hide_console():
+    """Esconde a janela do console."""
+    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+    if hwnd != 0:
+        ctypes.windll.user32.ShowWindow(hwnd, 0)  # 0 = Esconder a janela
+
+
+def show_console():
+    """Traz a janela do console para frente."""
+    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+    if hwnd != 0:
+        ctypes.windll.user32.ShowWindow(hwnd, 1)  # 1 = Mostrar a janela (restaurar)
+        ctypes.windll.user32.SetForegroundWindow(hwnd)  # Traz a janela para frente
+
+
+def clear_console():
+    """Limpa o console de acordo com o sistema operacional."""
+    # Para sistemas Windows
+    if os.name == 'nt':
+        os.system('cls')
+    # Para sistemas Unix/Linux/Mac
+    else:
+        os.system('clear')
 
 
 def capture_error(erro, contexto=""):
@@ -49,28 +73,6 @@ def login_canaime(p, sem_visual=True, usuario=None, senha=None):
     page.locator("input[name=\"senha\"]").fill(senha)
     page.locator("input[name=\"senha\"]").press("Enter")
     return page
-
-
-def show_processing_screen(root):
-    """Cria uma nova janela para exibir o status do processamento com fonte maior e centralização."""
-    processing_screen = tk.Toplevel(root)
-    processing_screen.title("Processando...")
-    processing_screen.geometry("400x200")  # Ajuste do tamanho da janela
-    processing_screen.transient(root)
-
-    # Definir fonte maior para o texto de status
-    fonte_grande = font.Font(size=14)
-
-    status_label = tk.Label(
-        processing_screen,
-        text="",
-        justify="center",  # Centralizar o texto na janela
-        font=fonte_grande,  # Usar fonte maior
-        wraplength=500  # Quebrar linha se o texto for muito longo
-    )
-    status_label.pack(fill="both", expand=True, padx=20, pady=20)
-
-    return processing_screen, status_label
 
 
 def generate_pdf(pagina, lista_portarias, folder="portarias"):
@@ -111,7 +113,6 @@ def coletar_dados_interface():
         lancamento_certidao
         .replace("{data_inicio}", data_inicio)
         .replace("{data_final}", data_final)
-        # A substituição do {n_portaria} será feita durante o processo, pois varia para cada preso
     )
 
     # Coletar caminho do arquivo Excel
@@ -133,7 +134,6 @@ def coletar_dados_interface():
     root.title("Seleção de Coluna")
     root.attributes('-topmost', True)
 
-    # Variável para armazenar a coluna selecionada
     coluna_selecionada = tk.StringVar()
     coluna_selecionada.set(None)
 
@@ -143,23 +143,22 @@ def coletar_dados_interface():
         else:
             root.quit()
 
-    # Obter todas as colunas não vazias
     colunas = [col for col in df.columns if df[col].notna().any()]
 
-    # Mostrar pergunta ao usuário
-    label_instrucao = tk.Label(root, text="Selecione a Coluna onde se encontram os códigos/ID's dos reeducandos:")
+    label_instrucao = tk.Label(root, text="Selecione a Coluna onde se encontram os códigos/ID's dos reeducandos:",
+                               font=('Arial', 12))
     label_instrucao.pack(pady=10)
 
-    # Mostrar opções de colunas para o usuário
     for col in colunas:
-        tk.Radiobutton(root, text=col, variable=coluna_selecionada, value=col).pack(anchor=tk.W)
+        tk.Radiobutton(root, text=col, variable=coluna_selecionada, value=col, font=('Arial', 12)).pack(anchor=tk.W)
 
-    btn_confirmar = tk.Button(root, text="Confirmar", command=confirmar_selecao)
+    btn_confirmar = tk.Button(root, text="Confirmar", command=confirmar_selecao, font=('Arial', 12))
     btn_confirmar.pack(pady=10)
 
-    # Ajustar tamanho da janela baseado no número de opções
+    # Ajustar tamanho da janela baseado no conteúdo das colunas
+    max_width = max(len(col) for col in colunas) * 50 + 100  # Ajuste o fator multiplicador e adiciona uma margem maior
     altura_janela = 100 + len(colunas) * 30
-    largura_janela = 400
+    largura_janela = max(min(max_width, 600), 300)  # Define um máximo para evitar janelas muito largas e um mínimo
     root.geometry(f"{largura_janela}x{altura_janela}")
 
     root.mainloop()
@@ -171,7 +170,6 @@ def coletar_dados_interface():
     coluna_id = coluna_selecionada.get()
     root.destroy()
 
-    # Usar a coluna selecionada pelo usuário para obter os IDs
     cdg = df[coluna_id].tolist()
 
     dados_coletados = [
@@ -191,44 +189,34 @@ def coletar_dados_interface():
 
 
 def main(sem_visual=True):
+    hide_console()
     (usuario, senha, data_inicio, data_final, artigos, lancamento_certidao,
      dia_inicio, mes_inicio, ano_inicio, cdg) = coletar_dados_interface()
 
     qtd = len(cdg)
     portarias = []
 
-    # Mostrar tela de processamento
-    root = tk.Tk()
-    root.title("Status Lançamentos")
-    processing_screen, status_label = show_processing_screen(root)
-
     with sync_playwright() as p:
-
-        # Fazendo login
         page = login_canaime(p, sem_visual=sem_visual, usuario=usuario, senha=senha)
+        clear_console()
+        show_console()
 
         for i, item in enumerate(cdg):
             try:
-                status_label.config(text=f"Processando preso {item} ({i + 1}/{qtd})...")
-                processing_screen.update()
+                print(f"({i + 1}/{qtd}) Processando preso {item}, restam {qtd - (i + 1)}...")
 
-                # Acessar página de cadastro de portaria
                 try:
                     page.goto(cadastrar_portaria + str(item))
                 except Exception as e:
-                    status_label.config(text=f"Erro ao acessar página de portaria para {item}: {str(e)}")
-                    processing_screen.update()
                     print(f"Erro ao acessar página de portaria para {item}: {str(e)}")
                     continue
 
-                # Preencher data
+                    # Preencher data
                 try:
                     page.locator("select[name=\"dia\"]").select_option(data_inicio[:2])
-                    page.locator("select[name=\"mes\"]").select_option(data_inicio[3:5])
+                    page.locator("select[name=\"mes\"]").select_option(mes_inicio)
                     page.locator("select[name=\"ano\"]").select_option(data_inicio[6:])
                 except Exception as e:
-                    status_label.config(text=f"Erro ao preencher data para {item}: {str(e)}")
-                    processing_screen.update()
                     print(f"Erro ao preencher data para {item}: {str(e)}")
                     continue
 
@@ -239,35 +227,25 @@ def main(sem_visual=True):
                         page.locator(f"textarea[name=\"paragrafo{j}\"]").press("Control+a")
                         page.locator(f"textarea[name=\"paragrafo{j}\"]").fill(artigos[str(art_key)])
                 except Exception as e:
-                    status_label.config(text=f"Erro ao preencher artigos para {item}: {str(e)}")
-                    processing_screen.update()
                     print(f"Erro ao preencher artigos para {item}: {str(e)}")
                     continue
 
-                # Cadastrar portaria
                 try:
                     page.get_by_role("button", name="CADASTRAR").click()
                 except Exception as e:
-                    status_label.config(text=f"Erro ao cadastrar portaria para {item}: {str(e)}")
-                    processing_screen.update()
                     print(f"Erro ao cadastrar portaria para {item}: {str(e)}")
                     continue
 
-                # Ler o número da portaria
                 try:
                     page.goto(ler_portaria + str(item))
                     n_portaria = page.locator('.titulobk:nth-child(1)').nth(0).text_content()
                     portarias.append(n_portaria)
                 except Exception as e:
-                    status_label.config(text=f"Erro ao ler número da portaria para {item}: {str(e)}")
-                    processing_screen.update()
                     print(f"Erro ao ler número da portaria para {item}: {str(e)}")
                     continue
 
-                # Substituir n_portaria no texto de lançamento
                 lancamento_certidao_item = lancamento_certidao.replace("{n_portaria}", n_portaria)
 
-                # Lançar certidão carcerária
                 try:
                     page.goto(historico + str(item))
                     page.get_by_role("link", name="Cadastrar histórico carcerário").click()
@@ -277,35 +255,27 @@ def main(sem_visual=True):
                     page.locator("textarea[name=\"histcarc\"]").fill(lancamento_certidao_item)
                     page.get_by_role("button", name="CADASTRAR").click()
                 except Exception as e:
-                    status_label.config(text=f"Erro ao lançar certidão carcerária para {item}: {str(e)}")
-                    processing_screen.update()
                     print(f"Erro ao lançar certidão carcerária para {item}: {str(e)}")
                     continue
 
             except Exception as e:
                 capture_error(e, contexto=f"Processando preso {item}")
-                status_label.config(text=f"Erro inesperado para {item}: {str(e)}")
-                processing_screen.update()
                 print(f"Erro inesperado para {item}: {str(e)}")
                 continue
 
-        # Salvar resultados e gerar PDFs
         try:
             novo_df = pd.DataFrame({'ID': cdg, 'Portaria': portarias})
             novo_df.to_excel('Saída Temporária.xlsx', index=False)
             generate_pdf(page, portarias)
         except Exception as e:
-            status_label.config(text=f"Erro ao salvar resultados: {str(e)}")
-            processing_screen.update()
             print(f"Erro ao salvar resultados: {str(e)}")
 
-        status_label.config(text="Processamento completo.")
-        processing_screen.update()
+        print("Processamento completo.")
         time.sleep(2)
 
 
 if __name__ == '__main__':
-    if updater.update_application(current_version):
+    if update_application(current_version):
         sys.exit(0)  # Exits the current application if an update is applied
 
     main(sem_visual=False)
