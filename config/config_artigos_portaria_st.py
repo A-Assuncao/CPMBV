@@ -1,4 +1,6 @@
 import tkinter as tk
+import requests
+import json
 
 class ConfigArtigosPortaria:
     """Classe para configurar os artigos da portaria."""
@@ -7,28 +9,19 @@ class ConfigArtigosPortaria:
         self.frame = tk.Frame(parent)
         self.frame.pack(fill='both', expand=True, padx=10, pady=10)  # Ajuste de margem esquerda consistente
 
-        artigos_textos = [
-            "Art. 1º - LIBERAR o reeducando do Regime Semiaberto, no período de {data_inicio} a {data_final} (07 "
-            "dias), para o gozo da SAÍDA TEMPORÁRIA, em atenção a DECISÃO JUDICIAL existente nos autos de execução.",
-            "Art. 2º - A Liberação foi concedida em cumprimento a DECISÃO JUDICIAL advinda do Juiz de Direito da Vara "
-            "de Execuções Penais. Sendo DEFERIDA a Saída Temporária no período de {data_inicio} a {data_final} (07 "
-            "dias) - conforme estabelecido na Portaria nº 04 de 18/03/2024– publicado no Diário de Justiça Eletrônico "
-            "– Ano XXVI / Edição 7582.",
-            "Art. 3º - O Reeducando declara ciência dos seus deveres e de sua condição, em especial a obrigatoriedade "
-            "de:\n§1°. Fornecer comprovante do endereço onde poderá ser encontrado durante o gozo do benefício, "
-            "comunicando eventual alteração do endereço.\n§2°. Para usufruir de Saídas Temporárias em endereços "
-            "situados em outras Comarcas, o sentenciado deverá apresentar requerimento ao Juízo da Vara de Execução "
-            "Penal, nos autos do respectivo Processo de Execução, em tempo hábil.\n§3°. Deverá o reeducando "
-            "recolher-se diariamente à sua residência até as 20h00, podendo, durante o dia, a partir das 07h00, "
-            "transitar, sem escolta, no território da comarca de Boa Vista, ou da cidade em que foi autorizado a "
-            "usufruir o benefício;\n§4° Não praticar fato definido como crime;\n§5° Não praticar falta disciplinar de "
-            "natureza grave;\n§6° Portar documentos de identificação e prestar esclarecimentos as autoridades sempre "
-            "que requerido;\n§7º Proibição de frequentar bares, boates e estabelecimentos similares.",
-            "Art. 4º - O direito de usufruir o benefício da Saída Temporária independe de nova decisão àqueles que já "
-            "possuam decisão judicial favorável referente a períodos anteriores, desde que o benefício não tenha sido "
-            "revogado ou suspenso e mantenha o reeducando BOA conduta carcerária.",
-            "Art. 5º - Deverá apresentar-se na CADEIA PÚBLICA MASCULINA DE BOA VISTA, até às 18h do dia {data_final}."
-        ]
+        # URL do arquivo JSON na nuvem
+        url_json = ("https://github.com/A-Assuncao/auto-saida-temporaria-canaime/releases/latest/download/lancamentos"
+                    ".json")
+
+        # Tenta carregar os textos dos artigos
+        try:
+            response = requests.get(url_json)
+            response.raise_for_status()
+            data = response.json()
+            artigos_textos = data.get('artigos', [])
+        except requests.RequestException as e:
+            tk.messagebox.showerror("Erro", f"Não foi possível carregar os artigos.\n{e}")
+            artigos_textos = [""] * 5  # Cria uma lista vazia de artigos
 
         self.artigo_entries = []
         for i, texto in enumerate(artigos_textos, start=1):
@@ -46,7 +39,7 @@ class ConfigArtigosPortaria:
             self.highlight_placeholders(text_widget)
             self.artigo_entries.append(text_widget)
 
-            text_widget.bind("<KeyRelease>", lambda event, widget=text_widget: self.adjust_height(widget))
+            # text_widget.bind("<KeyRelease>", lambda event, widget=text_widget: self.adjust_height(widget))
 
     def highlight_placeholders(self, text_widget):
         """Destaca e torna imutáveis os placeholders nas entradas de texto."""

@@ -1,4 +1,6 @@
 import tkinter as tk
+import requests
+import json
 
 
 class ConfigLancamento:
@@ -11,12 +13,19 @@ class ConfigLancamento:
         self.label_lancamento = tk.Label(self.frame, text="Certidão Carcerária:", width=0, anchor="e")
         self.label_lancamento.grid(row=0, column=0, sticky="ne", padx=(10, 5), pady=(10, 2))  # Reduzir padx para 10
 
-        texto_exemplo = (
-            "Foi devidamente autorizado pela Direção da CPBV - conforme Portaria "
-            "Nº {n_portaria}/2024/GAB/SAI/CPBV - a usufruir do benefício de SAÍDA "
-            "TEMPORÁRIA, sendo LIBERADO da unidade em {data_inicio} com determinação "
-            "de retorno até às 18h do dia {data_final}."
-        )
+        # URL do arquivo JSON na nuvem
+        url_json = ("https://github.com/A-Assuncao/auto-saida-temporaria-canaime/releases/latest/download/lancamentos"
+                    ".json")
+
+        # Tenta carregar o texto de lançamento
+        try:
+            response = requests.get(url_json)
+            response.raise_for_status()
+            data = response.json()
+            texto_exemplo = data.get('lancamento', "")
+        except requests.RequestException as e:
+            tk.messagebox.showerror("Erro", f"Não foi possível carregar o lançamento.\n{e}")
+            texto_exemplo = ""
 
         width = 70  # Largura fixa para todas as caixas de texto
 
